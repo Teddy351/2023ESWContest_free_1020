@@ -57,14 +57,14 @@ void setup() {
 void loop() {
   if (Serial.available()) {
     control = Serial.read();
-    if (control >> 6) {  //RIGHT
+    if (control >> 6) {
       R.B = control >> 5 & 0x01;
       R.SW = control >> 4 & 0x01;
       R.N = control >> 3 & 0x01;
       R.S = control >> 2 & 0x01;
       R.W = control >> 1 & 0x01;
       R.E = control & 0x01;
-    } else {  //LEFT
+    } else {
       L.B = control >> 5 & 0x01;
       L.SW = control >> 4 & 0x01;
       L.N = control >> 3 & 0x01;
