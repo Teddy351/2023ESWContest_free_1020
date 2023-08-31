@@ -9,7 +9,6 @@ Step_M::Step_M(byte dir,byte step){
     this->step = step;
 
     this->pre_step = 0;
-    //digitalWrite(this->en,HIGH);
     digitalWrite(this->dir,LOW);
     digitalWrite(this->step,LOW);
 }
