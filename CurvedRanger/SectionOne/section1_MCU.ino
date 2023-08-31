@@ -1,9 +1,6 @@
-//LIBRAY---------------
 #include <Step.h>
 #include <Wire.h>
-//LIBRAY---------------
 
-//DEFINE---------------
 #define STEP1 2
 #define DIR1 3
 
@@ -17,18 +14,13 @@
 #define DIR4 9
 
 #define IIC_ADDR 0x01
-//DEFINE---------------
 
-//CLASS----------------
 Step_M A(DIR1, STEP1);
 Step_M B(DIR2, STEP2);
 Step_M C(DIR3, STEP3);
 Step_M D(DIR4, STEP4);
-//CLASS----------------
 
-//VARIABLE-------------
 byte buf[4];
-//VARIABLE-------------
 
 void setup() {
   Serial.begin(115200);
