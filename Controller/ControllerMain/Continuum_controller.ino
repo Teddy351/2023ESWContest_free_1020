@@ -1,280 +1,186 @@
-//LIBRAY--------------------------
 #include <WiFi.h>
 #include <WiFiUdp.h>
-
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-//LIBRAY--------------------------
 
-//DEFINE--------------------------
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C  //SCL.22 SDA.21
+#define LED_BUILTIN 2
 
-#define LXO 32
-#define LYO 32
 #define RXO 96
 #define RYO 32
+#define LXO 32
+#define LYO 32
 
-#define LX1 7
-#define LX2 57
-#define LY1 7
-#define LY2 57
+void easyPull(int section, int incrementAngle, int card);
+void pullIncrement(int section, double incrementAngle, int card);
 
-#define RX1 71
-#define RX2 121
-#define RY1 7
-#define RY2 57
-//DEFINE--------------------------
+WiFiUDP Udp;
 
-//CLASS---------------------------
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-WiFiUDP udp;
-//CLASS---------------------------
-
-//STRUCT--------------------------
-struct MAP {
-  bool N = 0, S = 0, E = 0, W = 0, B = 0, SW = 0;
+struct Sheet {
+  byte address;
+  int M[3] = { 0, 0, 0 };
+  int M_pre[3] = { 0, 0, 0 };
 };
-MAP L;
-MAP R;
+Sheet Sec1;
+Sheet Sec2;
+Sheet Sec3;
 
-//STRUCT--------------------------
+Sheet Section[3] = { Sec1, Sec2, Sec3 };
 
-//VARIABLE------------------------
-const char *networkName = "Continuum";
-const char *networkPswd = "44084408";
-const char *udpAddress = "192.168.4.1";
-const int udpPort = 3333;
+const char *ssid = "Continuum";
+const char *password = "44084408";
+byte packetBuffer[6];
+unsigned int localPort = 3333;
 
-boolean connected = false;
-
-byte page = 1, _page = 0;
-
-byte Lx = 32, Ly = 32, Rx = 96, Ry = 32;
-bool Rf, Lf;
-bool pre_RSW = 0, pre_LSW = 0, pre_RB = 0, pre_LB = 0;
-byte control = 0x00;
-//VARIABLE------------------------
+double _angleArray[8] = {
+  0,
+};
+float _cardTuner = 0.65;
+int _sectionTuner = 0;
+int _sections = 2;
 
 void setup() {
-  DP_SETTING();
-  Serial.begin(9600);
+  Serial.begin(115200);
+  Wire.begin();
+  WiFi.softAP(ssid, password);
+  Udp.begin(localPort);
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
 }
 
 void loop() {
-  if (Serial.available()) {
-    control = Serial.read();
-    if (control >> 6) {  //RIGHT
-      R.B = control >> 5 & 0x01;
-      R.SW = control >> 4 & 0x01;
-      R.N = control >> 3 & 0x01;
-      R.S = control >> 2 & 0x01;
-      R.W = control >> 1 & 0x01;
-      R.E = control & 0x01;
-    } else {  //LEFT
-      L.B = control >> 5 & 0x01;
-      L.SW = control >> 4 & 0x01;
-      L.N = control >> 3 & 0x01;
-      L.S = control >> 2 & 0x01;
-      L.W = control >> 1 & 0x01;
-      L.E = control & 0x01;
-    }
-  }
-  if (page != _page) {
-    switch (page) {
-      case 1:
-        //Draw Two circle Page --main page--
-        drawMap();
-        break;
+  int packetSize = Udp.parsePacket();
 
-      default:
-        break;
-    }
-    display.display();
-  } else {
-    switch (page) {
-      case 1:
-        if (R.N || R.W || R.E || R.S || L.N || L.W || L.S || L.E || R.SW || L.SW || R.B || L.B) {
-          display.drawLine(LXO, LYO, Lx, Ly, BLACK);
-          display.drawLine(RXO, RYO, Rx, Ry, BLACK);
+  if (packetSize) {
 
-          Lx = constrain((L.W == 1) ? Lx-- : Lx, LX1 + 1, LX2 - 2);
-          Lx = constrain((L.E == 1) ? Lx++ : Lx, LX1 + 1, LX2 - 2);
+    int len = Udp.read(packetBuffer, 6);
 
-          Ly = constrain((L.N == 1) ? Ly-- : Ly, LY1 + 1, LY2 - 2);
-          Ly = constrain((L.S == 1) ? Ly++ : Ly, LY1 + 1, LY2 - 2);
+    if (len > 0) packetBuffer[len] = 0;
 
-          Rx = constrain((R.W == 1) ? Rx-- : Rx, RX1 + 1, RX2 - 2);
-          Rx = constrain((R.E == 1) ? Rx++ : Rx, RX1 + 1, RX2 - 2);
+    float Rangle, Langle;
 
-          Ry = constrain((R.N == 1) ? Ry-- : Ry, RY1 + 1, RY2 - 2);
-          Ry = constrain((R.S == 1) ? Ry++ : Ry, RY1 + 1, RY2 - 2);
-
-          if (R.SW == 1 && pre_RSW == 0) {
-            udp.beginPacket(udpAddress, udpPort);
-            udp.write(0xf1);
-            udp.write(Lx);
-            udp.write(Ly);
-            udp.write(Rx);
-            udp.write(Ry);
-            udp.write(0xf0);
-            udp.endPacket();
-          }
-          pre_RSW = R.SW;
-
-          if (L.SW == 1 && pre_LSW == 0) {
-            Lx = LXO;
-            Ly = LYO;
-            Rx = RXO;
-            Ry = RYO;
-            udp.beginPacket(udpAddress, udpPort);
-            udp.write(0xf1);
-            udp.write(Lx);
-            udp.write(Ly);
-            udp.write(Rx);
-            udp.write(Ry);
-            udp.write(0xf0);
-            udp.endPacket();
-          }
-          pre_LSW = L.SW;
-
-          if (R.B == 1 && pre_RB == 0) {
-            static bool Rf = (Rf == 1) ? 0 : 1;
-            if (Rf) {
-              udp.beginPacket(udpAddress, udpPort);
-              udp.write(0xf1);
-              udp.write(Lx);
-              udp.write(Ly);
-              udp.write(Rx);
-              udp.write(Ry);
-              udp.write(0xf1);
-              udp.endPacket();
-            } else {
-              udp.beginPacket(udpAddress, udpPort);
-              udp.write(0xf1);
-              udp.write(Lx);
-              udp.write(Ly);
-              udp.write(Rx);
-              udp.write(Ry);
-              udp.write(0xf0);
-              udp.endPacket();
-            }
-          }
-          pre_RB = R.B;
-          if (L.B == 1 && pre_LB == 0) {
-            static bool Lf = (Lf == 1) ? 0 : 1;
-            if (Lf) {
-              udp.beginPacket(udpAddress, udpPort);
-              udp.write(0xf1);
-              udp.write(Lx);
-              udp.write(Ly);
-              udp.write(Rx);
-              udp.write(Ry);
-              udp.write(0xf2);
-              udp.endPacket();
-            } else {
-              udp.beginPacket(udpAddress, udpPort);
-              udp.write(0xf1);
-              udp.write(Lx);
-              udp.write(Ly);
-              udp.write(Rx);
-              udp.write(Ry);
-              udp.write(0xf0);
-              udp.endPacket();
-            }
-          }
-          pre_LB = L.B;
-          if (R.N || R.W || R.E || R.S || L.N || L.W || L.S || L.E || L.SW) {
-            delay(10);
-            display.drawLine(LXO, LYO, Lx, Ly, WHITE);
-            display.drawLine(RXO, RYO, Rx, Ry, WHITE);
-
-            display.display();
-          }
+    if (packetBuffer[1] != 0 && packetBuffer[3] != 0) {
+      if (packetBuffer[1] >= LXO) {
+        if (packetBuffer[2] >= LYO) {
+          Langle = 90 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
+        } else {
+          Langle = 90 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
         }
-        break;
-      default:
-        break;
+      } else {
+        if (packetBuffer[2] >= LYO) {
+          Langle = 90 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
+        } else {
+          Langle = 450 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
+        }
+      }
+
+      if (packetBuffer[3] >= RXO) {
+        if (packetBuffer[4] >= RYO) {
+          Rangle = 90 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
+        } else {
+          Rangle = 90 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
+        }
+      } else {
+        if (packetBuffer[4] >= RYO) {
+          Rangle = 90 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
+        } else {
+          Rangle = 450 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
+        }
+      }
+
+      byte L_dis = sqrt(sq(packetBuffer[1] - LXO) + sq(packetBuffer[2] - LYO));
+      byte R_dis = sqrt(sq(packetBuffer[3] - RXO) + sq(packetBuffer[4] - RYO));
+
+      L_dis = map(L_dis, 0, 25 * sqrt(2), 0, 90);
+      R_dis = map(R_dis, 0, 25 * sqrt(2), 0, 90);
+
+      easyPull(1, L_dis, Langle);
+      easyPull(2, R_dis, Rangle);
+
+      for (byte i = 4; i < 8; i++) {
+        _angleArray[i] = map(_angleArray[i], 0, 200, 0, 170);
+      }
+
+      for (byte a = 0; a < 8; a++) {
+        Serial.print(_angleArray[a]);
+        Serial.print(" ");
+      }
+      Serial.println();
+
+      Wire.beginTransmission(0x01);
+      Wire.write((byte)_angleArray[0]);
+      Wire.write((byte)_angleArray[1]);
+      Wire.write((byte)_angleArray[2]);
+      Wire.write((byte)_angleArray[3]);
+      Wire.endTransmission(true);
+
+      Wire.beginTransmission(0x02);
+      Wire.write((byte)_angleArray[4]);
+      Wire.write((byte)_angleArray[5]);
+      Wire.write((byte)_angleArray[6]);
+      Wire.write((byte)_angleArray[7]);
+      Wire.endTransmission(true);
+
+      Wire.beginTransmission(0x03);
+      Wire.write(packetBuffer[5] & 0x0f);
+      Wire.endTransmission(true);
+
+      for (byte a = 0; a < 8; a++) {
+        _angleArray[a] = 0;
+      }
     }
   }
-  _page = page;
-}
-
-void drawMap() {
-  display.drawRect(LX1, LY1, LX2 - LX1, LY2 - LY1, WHITE);
-  display.drawRect(RX1, RY1, RX2 - RX1, RY2 - RY1, WHITE);
-  /*
-
-    display.drawLine(LX1,32,LX2,32, WHITE);
-    display.drawLine(32,LY1,32,LY2, WHITE);
-
-    display.drawLine(RX1,32,RX2,32, WHITE);
-    display.drawLine(96,RY1,96,RY2, WHITE);
-  */
-}
-
-void DP_SETTING() {
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    for (;;)
-      ;
-  }
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.clearDisplay();
-  display.display();
-  Show("Loading.", 0, 27);
-  display.display();
-  delay(800);
-
-  connectToWiFi(networkName, networkPswd);
-  Show("Loading..", 0, 27);
-  display.display();
-  delay(500);
-  Show("Loading...", 0, 27);
-  display.display();
-  delay(1000);
-
-  Clear();
-  Show("Done!", 0, 27);
-  display.display();
-  delay(3000);
-  Clear();
-}
-
-void connectToWiFi(const char *ssid, const char *pwd) {
-  WiFi.disconnect(true);
-  WiFi.onEvent(WiFiEvent);
-  WiFi.begin(ssid, pwd);
-}
-
-void WiFiEvent(WiFiEvent_t event) {
-  switch (event) {
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      udp.begin(WiFi.localIP(), udpPort);
-      connected = true;
-      break;
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-      connected = false;
-      ESP.restart();
-      break;
-    default: break;
+  if (Serial.available() > 0) {
+    int sec = Serial.parseInt();
+    int A = Serial.parseInt();
+    int B = Serial.parseInt();
+    int C = Serial.parseInt();
+    int D = Serial.parseInt();
+    if (sec == 1) {
+      Wire.beginTransmission(0x01);
+      Wire.write(A);
+      Wire.write(B);
+      Wire.write(C);
+      Wire.write(D);
+      Wire.endTransmission(true);
+    } else {
+      Wire.beginTransmission(0x02);
+      Wire.write(A);
+      Wire.write(B);
+      Wire.write(C);
+      Wire.write(D);
+      Wire.endTransmission(true);
+    }
   }
 }
 
-void Show(String sentance, int x, int y) {
-  display.setCursor(x, y);
-  display.println(sentance);
+void easyPull(int section, int incrementAngle, int card) {
+  float angle = ((card % 90) * M_PI) / 180;
+  if (card % 90 == 0) {
+    pullIncrement(section, incrementAngle, card / 90);
+  } else {
+    for (int i = 0; i < section - 1; i++) {
+      _angleArray[4 * i + (card / 90)] += incrementAngle * (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle));
+      _angleArray[4 * i + ((card / 90 + 1) % 4)] += incrementAngle * (2 * (180 / incrementAngle) - 1 - (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle)));
+      _angleArray[4 * i + (card / 90)] *= 0.5;
+      _angleArray[4 * i + ((card / 90 + 1) % 4)] *= 0.5;
+    }
+    for (int i = section - 1; i < _sections; i++) {
+      float var = (incrementAngle * section) / (i + 1);
+      _angleArray[4 * i + (card / 90)] += var * (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle));
+      _angleArray[4 * i + ((card / 90 + 1) % 4)] += var * (2 * (180 / incrementAngle) - 1 - (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle)));
+    }
+  }
 }
-
-void Clear() {
-  display.clearDisplay();
-  display.display();
-}
-
-void Erase(int x, int y, int w, int h) {
-  display.fillRect(x, y, w, y, BLACK);
+void pullIncrement(int section, double incrementAngle, int card) {
+  for (int i = 0; i < section - 1; i++) {
+    _angleArray[4 * i + card] += incrementAngle;
+    _angleArray[4 * i + ((card + 3) % 4)] += _cardTuner * (incrementAngle * _sectionTuner);
+    _angleArray[4 * i + ((card + 1) % 4)] += _cardTuner * (incrementAngle * _sectionTuner);
+  }
+  for (int i = section - 1; i < _sections; i++) {
+    _angleArray[4 * i + card] += (incrementAngle * section) / (i + 1) ;
+    _angleArray[4 * i + ((card + 3) % 4)] += _cardTuner * ((incrementAngle * section) / (i + 1));
+    _angleArray[4 * i + ((card + 1) % 4)] += _cardTuner * ((incrementAngle * section) / (i + 1));
+  }
 }
