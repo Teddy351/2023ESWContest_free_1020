@@ -1,7 +1,7 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 
-#define CAMERA_MODEL_AI_THINKER // Has PSRAM
+#define CAMERA_MODEL_AI_THINKER
 
 #include "camera_pins.h"
 
