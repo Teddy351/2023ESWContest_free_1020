@@ -2,7 +2,7 @@
 
 #define IN1 3
 #define IN2 4
-#define IIC_ADDR 0x03  //addres
+#define IIC_ADDR 0x03
 
 #define STOP 0x00
 #define RUN 0x01
