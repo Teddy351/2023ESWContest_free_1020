@@ -1,16 +1,3 @@
-// Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 #include "esp_http_server.h"
 #include "esp_timer.h"
 #include "esp_camera.h"
@@ -35,11 +22,11 @@
 #define FACE_COLOR_PURPLE (FACE_COLOR_BLUE | FACE_COLOR_RED)
 
 typedef struct {
-        size_t size; //number of values used for filtering
-        size_t index; //current value index
-        size_t count; //value count
+        size_t size;
+        size_t index;
+        size_t count;
         int sum;
-        int * values; //array to be filled with values
+        int * values;
 } ra_filter_t;
 
 typedef struct {
@@ -140,7 +127,6 @@ static void draw_face_boxes(dl_matrix3du_t *image_matrix, box_array_t *boxes, in
     fb.bytes_per_pixel = 3;
     fb.format = FB_BGR888;
     for (i = 0; i < boxes->len; i++){
-        // rectangle box
         x = (int)boxes->box[i].box_p[0];
         y = (int)boxes->box[i].box_p[1];
         w = (int)boxes->box[i].box_p[2] - x + 1;
@@ -150,7 +136,6 @@ static void draw_face_boxes(dl_matrix3du_t *image_matrix, box_array_t *boxes, in
         fb_gfx_drawFastVLine(&fb, x, y, h, color);
         fb_gfx_drawFastVLine(&fb, x+w-1, y, h, color);
 #if 0
-        // landmark
         int x0, y0, j;
         for (j = 0; j < 10; j+=2) {
             x0 = (int)boxes->landmark[i].landmark_p[j];
