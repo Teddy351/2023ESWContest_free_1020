@@ -1,28 +1,19 @@
-//LIBRAY--------------------------
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <Wire.h>
-//LIBRAY--------------------------
 
-//DEFINE--------------------------
 #define LED_BUILTIN 2
 
 #define RXO 96
 #define RYO 32
 #define LXO 32
 #define LYO 32
-//DEFINE--------------------------
 
-//FUNCTION------------------------
 void easyPull(int section, int incrementAngle, int card);
 void pullIncrement(int section, double incrementAngle, int card);
-//FUNCTION------------------------
 
-//CLASS---------------------------
 WiFiUDP Udp;
-//CLASS---------------------------
 
-//STRUCT--------------------------
 struct Sheet {
   byte address;
   int M[3] = { 0, 0, 0 };
@@ -33,9 +24,7 @@ Sheet Sec2;
 Sheet Sec3;
 
 Sheet Section[3] = { Sec1, Sec2, Sec3 };
-//STRUCT--------------------------
 
-//VARIABLE------------------------
 const char *ssid = "Continuum";
 const char *password = "44084408";
 byte packetBuffer[6];
@@ -47,7 +36,6 @@ double _angleArray[8] = {
 float _cardTuner = 0.65;
 int _sectionTuner = 0;
 int _sections = 2;
-//VARIABLE------------------------
 
 void setup() {
   Serial.begin(115200);
@@ -74,36 +62,28 @@ void loop() {
     if (packetBuffer[1] != 0 && packetBuffer[3] != 0) {
       if (packetBuffer[1] >= LXO) {
         if (packetBuffer[2] >= LYO) {
-          //1
           Langle = 90 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
         } else {
-          //2
           Langle = 90 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
         }
       } else {
         if (packetBuffer[2] >= LYO) {
-          //3
           Langle = 90 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
         } else {
-          //4
           Langle = 450 + atan2(packetBuffer[2] - LYO, packetBuffer[1] - LXO) * 180 / PI;
         }
       }
 
       if (packetBuffer[3] >= RXO) {
         if (packetBuffer[4] >= RYO) {
-          //1
           Rangle = 90 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
         } else {
-          //2
           Rangle = 90 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
         }
       } else {
         if (packetBuffer[4] >= RYO) {
-          //3
           Rangle = 90 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
         } else {
-          //4
           Rangle = 450 + atan2(packetBuffer[4] - RYO, packetBuffer[3] - RXO) * 180 / PI;
         }
       }
@@ -190,8 +170,6 @@ void easyPull(int section, int incrementAngle, int card) {
       _angleArray[4 * i + (card / 90)] += var * (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle));
       _angleArray[4 * i + ((card / 90 + 1) % 4)] += var * (2 * (180 / incrementAngle) - 1 - (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle)));
     }
-    //_angleArray[4 * (section - 1) + (card / 90)] += incrementAngle * (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle));
-    //_angleArray[4 * (section - 1) + ((card / 90 + 1) % 4)] += incrementAngle * (2 * (180 / incrementAngle) - 1 - (tan(angle) + 2 * (180 / incrementAngle) - 2) / (1 + tan(angle)));
   }
 }
 void pullIncrement(int section, double incrementAngle, int card) {
