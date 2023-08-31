@@ -39,11 +39,6 @@ byte Btn::State(){
   return signal;
 }
 
-//NOTE !!!
-//Under this functions are only for 5V logic Level
-//if you are board had 3.3V logic Lv
-//Then modify the Threshold value
-
 byte Btn::Joy_X(){
   word val = analogRead(_pin);
   if(val <= 10){
