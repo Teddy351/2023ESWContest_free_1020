@@ -6,7 +6,6 @@ class Step_M{
         byte dir,step;
         long STEP;
         bool DIR;
-        //bool EN;
         long pre_step = 0;
         unsigned long cur = 0;
         unsigned long pre = 0;
