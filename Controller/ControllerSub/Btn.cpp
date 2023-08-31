@@ -1,7 +1,6 @@
 #include "Btn.h"
 #include "Arduino.h"
 
-
 Btn::Btn(byte pin){
   _pin = pin;
 }
@@ -23,16 +22,12 @@ byte Btn::State(){
   byte signal;
   _cur = digitalRead(_pin);
   if(_cur == HIGH && _pre == HIGH){
-    //HIGH
     signal = 0;
   }else if(_cur == LOW && _pre == HIGH){
-    //FALLING
     signal = 1;
   }else if(_cur == LOW && _pre == LOW){
-    //PRESSING
     signal = 2;
   }else{
-    //RISING
     signal = 4;
   }
   _pre = _cur;
