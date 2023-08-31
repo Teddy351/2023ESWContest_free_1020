@@ -4,14 +4,11 @@
 Step_M::Step_M(byte dir,byte step){
     pinMode(dir,OUTPUT);
     pinMode(step,OUTPUT);
-    //pinMode(en,OUTPUT);
 
     this->dir = dir;
     this->step = step;
-    //this->en = en;
 
     this->pre_step = 0;
-    //digitalWrite(this->en,HIGH);
     digitalWrite(this->dir,LOW);
     digitalWrite(this->step,LOW);
 }
@@ -25,7 +22,6 @@ void Step_M::setStep(long steps){
         this->STEP = -steps;
         digitalWrite(this->dir,LOW);
     }
-    //digitalWrite(this->en,LOW);
 }
 
 void Step_M::setDuration(long duration){
@@ -37,7 +33,6 @@ bool Step_M::Whether(){
         return 1;
     }
     else{
-        //digitalWrite(this->en,HIGH);
         return 0;
     }
 }
